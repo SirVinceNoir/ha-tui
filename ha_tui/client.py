@@ -83,6 +83,24 @@ class HAClient:
                 result[entity_id.strip()] = area.strip()
         return result
 
+    async def get_scenes(self) -> list[Entity]:
+        """Return all scene entities, sorted by name."""
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{self.url}/api/states",
+                headers=self._headers,
+                timeout=10,
+            )
+            r.raise_for_status()
+        return sorted(
+            (
+                self._make_entity(s)
+                for s in r.json()
+                if s["entity_id"].split(".")[0] == "scene"
+            ),
+            key=lambda e: e.name,
+        )
+
     async def call_service(
         self, domain: str, service: str, data: dict[str, Any]
     ) -> None:

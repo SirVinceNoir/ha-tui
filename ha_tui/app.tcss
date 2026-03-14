@@ -251,6 +251,132 @@ ColorPreview, ColorTempPreview {
     width: 1fr;
 }
 
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+
+TabbedContent {
+    height: 1fr;
+}
+
+ContentSwitcher {
+    height: 1fr;
+    background: $ha-bg;
+}
+
+TabPane {
+    height: 100%;
+    padding: 0;
+}
+
+Tabs {
+    background: $ha-surface;
+    border-bottom: solid $ha-primary;
+}
+
+Tab {
+    color: $ha-muted;
+    background: $ha-surface;
+}
+
+Tab:hover {
+    color: $ha-primary;
+    background: $ha-hover;
+}
+
+Tab.-active {
+    color: $ha-primary;
+    background: $ha-bg;
+    text-style: bold;
+}
+
+Tab:focus {
+    color: $ha-primary;
+}
+
+/* ── Rooms view ──────────────────────────────────────────────────────── */
+
+#rooms-view {
+    height: 100%;
+    padding: 2 4;
+    background: $ha-bg;
+}
+
+.room-card {
+    width: 100%;
+    height: auto;
+    background: $ha-surface;
+    border: solid $ha-border-dim;
+    padding: 1 2;
+    margin-bottom: 1;
+}
+
+.room-card-header {
+    color: $ha-accent;
+    text-style: bold;
+    width: 100%;
+    padding-bottom: 1;
+    border-bottom: solid $ha-border-dim;
+}
+
+.room-light-row {
+    height: 3;
+    align: left middle;
+}
+
+.room-light-name {
+    width: 1fr;
+    color: $ha-primary;
+    content-align: left middle;
+}
+
+.room-light-name:hover {
+    color: $ha-accent;
+    text-style: underline;
+}
+
+.room-card-buttons {
+    margin-top: 1;
+    height: 3;
+    align: right middle;
+}
+
+.room-card-buttons Button {
+    width: auto;
+    margin-left: 1;
+}
+
+/* ── Scenes view ─────────────────────────────────────────────────────── */
+
+#scenes-view {
+    height: 100%;
+    padding: 2 4;
+    background: $ha-bg;
+}
+
+.scenes-header {
+    color: $ha-accent;
+    text-style: bold;
+    width: 100%;
+    margin-bottom: 1;
+}
+
+.scenes-empty {
+    color: $ha-dim;
+    width: 100%;
+}
+
+.scene-row {
+    height: 3;
+    width: 100%;
+    align: left middle;
+    margin-bottom: 1;
+}
+
+.scene-name {
+    width: 1fr;
+    color: $ha-primary;
+    content-align: left middle;
+}
+
 /* ── Settings modal ──────────────────────────────────────────────────── */
 
 SettingsScreen {

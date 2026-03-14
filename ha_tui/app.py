@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from textual import work
+from textual import events, work
 from textual.app import App, ComposeResult
 from textual.containers import Container, Horizontal, ScrollableContainer
 from textual.message import Message
@@ -16,6 +16,8 @@ from textual.widgets import (
     ListView,
     Static,
     Switch,
+    TabbedContent,
+    TabPane,
 )
 
 from .client import Entity, HAClient
@@ -40,6 +42,8 @@ def _entity_state_str(entity: Entity) -> str:
     return state
 
 
+# ── Sidebar list widgets ───────────────────────────────────────────────────
+
 class AreaHeader(ListItem):
     def __init__(self, name: str) -> None:
         super().__init__()
@@ -58,6 +62,8 @@ class EntityItem(ListItem):
         yield Label(f"> {self.entity.name}", classes="item-name")
         yield Label(_entity_state_str(self.entity), classes="item-state")
 
+
+# ── Detail panels ──────────────────────────────────────────────────────────
 
 class LightPanel(Static):
     class StateChanged(Message):
@@ -117,7 +123,6 @@ class LightPanel(Static):
             )
 
     def update_entity(self, entity: Entity) -> None:
-        """Update displayed values in-place without remounting."""
         self._entity = entity
         is_on = entity.state == "on"
 
@@ -231,7 +236,6 @@ class ClimatePanel(Static):
             yield Button("Set", id="btn-temp", variant="primary")
 
     def update_entity(self, entity: Entity) -> None:
-        """Update displayed values in-place without remounting."""
         self._entity = entity
         attrs = entity.attributes
         current = attrs.get("current_temperature", "—")
@@ -260,6 +264,200 @@ class ClimatePanel(Static):
             self.app.notify(str(exc), severity="error")
 
 
+# ── Rooms tab widgets ──────────────────────────────────────────────────────
+
+class NavLabel(Label):
+    """A label that posts a Clicked message when the user clicks it."""
+
+    class Clicked(Message):
+        pass
+
+    def on_click(self, event: events.Click) -> None:
+        event.stop()
+        self.post_message(self.Clicked())
+
+
+class RoomLightRow(Horizontal):
+    """A single light row inside a room card: clickable name + toggle switch."""
+
+    class Toggled(Message):
+        def __init__(self, entity_id: str, value: bool) -> None:
+            self.entity_id = entity_id
+            self.value = value
+            super().__init__()
+
+    class Navigate(Message):
+        def __init__(self, entity_id: str) -> None:
+            self.entity_id = entity_id
+            super().__init__()
+
+    def __init__(self, entity: Entity) -> None:
+        super().__init__(classes="room-light-row")
+        self._entity = entity
+        self._updating = False
+
+    def compose(self) -> ComposeResult:
+        yield NavLabel(f"▸ {self._entity.name}", classes="room-light-name")
+        yield Switch(value=self._entity.state == "on")
+
+    def on_nav_label_clicked(self, _: NavLabel.Clicked) -> None:
+        self.post_message(self.Navigate(self._entity.entity_id))
+
+    def on_switch_changed(self, event: Switch.Changed) -> None:
+        event.stop()
+        if not self._updating:
+            self.post_message(self.Toggled(self._entity.entity_id, event.value))
+
+    def update_entity(self, entity: Entity) -> None:
+        self._entity = entity
+        self._updating = True
+        self.query_one(Switch).value = entity.state == "on"
+        self._updating = False
+        try:
+            self.query_one(".room-light-name", Label).update(f"▸ {entity.name}")
+        except Exception:
+            pass
+
+
+class RoomCard(Static):
+    """Card showing all lights in a single area with individual toggles and bulk controls."""
+
+    def __init__(self, area: str, entities: list[Entity], client: HAClient) -> None:
+        super().__init__(classes="room-card")
+        self._area = area
+        self._lights = sorted(
+            (e for e in entities if e.domain == "light"), key=lambda e: e.name
+        )
+        self._client = client
+
+    def _summary(self) -> str:
+        on = sum(1 for e in self._lights if e.state == "on")
+        return f"── {self._area.upper()} ──  {on}/{len(self._lights)} on"
+
+    def compose(self) -> ComposeResult:
+        yield Label(self._summary(), classes="room-card-header")
+        for entity in self._lights:
+            yield RoomLightRow(entity)
+        with Horizontal(classes="room-card-buttons"):
+            yield Button("All On", id="btn-all-on")
+            yield Button("All Off", id="btn-all-off")
+
+    def update_lights(self, entities: list[Entity]) -> None:
+        self._lights = sorted(
+            (e for e in entities if e.domain == "light"), key=lambda e: e.name
+        )
+        try:
+            self.query_one(".room-card-header", Label).update(self._summary())
+        except Exception:
+            pass
+        entity_map = {e.entity_id: e for e in self._lights}
+        for row in self.query(RoomLightRow):
+            if row._entity.entity_id in entity_map:
+                row.update_entity(entity_map[row._entity.entity_id])
+
+    async def on_room_light_row_toggled(self, event: RoomLightRow.Toggled) -> None:
+        service = "turn_on" if event.value else "turn_off"
+        try:
+            await self._client.call_service("light", service, {"entity_id": event.entity_id})
+            self.app.set_timer(0.5, self.app.refresh_entities)
+        except Exception as exc:
+            self.app.notify(str(exc), severity="error")
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id not in ("btn-all-on", "btn-all-off"):
+            return
+        event.stop()
+        service = "turn_on" if event.button.id == "btn-all-on" else "turn_off"
+        ids = [e.entity_id for e in self._lights]
+        try:
+            await self._client.call_service("light", service, {"entity_id": ids})
+            self.app.set_timer(0.5, self.app.refresh_entities)
+        except Exception as exc:
+            self.app.notify(str(exc), severity="error")
+
+
+class RoomsView(ScrollableContainer):
+    """Full-width scrollable overview of all rooms."""
+
+    def __init__(self, client: HAClient) -> None:
+        super().__init__(id="rooms-view")
+        self._client = client
+
+    @staticmethod
+    def _group(entities: list[Entity], area_map: dict[str, str]) -> dict[str, list[Entity]]:
+        groups: dict[str, list[Entity]] = defaultdict(list)
+        for e in entities:
+            if e.domain != "light":
+                continue
+            area = area_map.get(e.entity_id) or "Uncategorized"
+            groups[area].append(e)
+        areas = sorted(k for k in groups if k != "Uncategorized")
+        if "Uncategorized" in groups:
+            areas.append("Uncategorized")
+        return {a: groups[a] for a in areas}
+
+    async def update_rooms(self, entities: list[Entity], area_map: dict[str, str]) -> None:
+        new_groups = self._group(entities, area_map)
+        existing = {card._area: card for card in self.query(RoomCard)}
+        if set(existing) == set(new_groups):
+            for area, card in existing.items():
+                card.update_lights(new_groups[area])
+        else:
+            await self.remove_children()
+            for area, lights in new_groups.items():
+                await self.mount(RoomCard(area, lights, self._client))
+
+
+# ── Scenes tab widgets ─────────────────────────────────────────────────────
+
+class SceneRow(Horizontal):
+    """A single scene row: name + Activate button."""
+
+    def __init__(self, entity: Entity, client: HAClient) -> None:
+        super().__init__(classes="scene-row")
+        self._entity = entity
+        self._client = client
+
+    def compose(self) -> ComposeResult:
+        yield Label(self._entity.name, classes="scene-name")
+        yield Button("Activate", id="btn-activate")
+
+    async def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-activate":
+            event.stop()
+            try:
+                await self._client.call_service(
+                    "scene", "turn_on", {"entity_id": self._entity.entity_id}
+                )
+                self.app.notify(f"'{self._entity.name}' activated", timeout=3)
+            except Exception as exc:
+                self.app.notify(str(exc), severity="error")
+
+
+class ScenesView(ScrollableContainer):
+    """Full-width list of all scenes with Activate buttons."""
+
+    def __init__(self, client: HAClient) -> None:
+        super().__init__(id="scenes-view")
+        self._client = client
+        self._scene_ids: list[str] = []
+
+    async def update_scenes(self, scenes: list[Entity]) -> None:
+        new_ids = [s.entity_id for s in scenes]
+        if new_ids == self._scene_ids:
+            return
+        self._scene_ids = new_ids
+        await self.remove_children()
+        if not scenes:
+            await self.mount(Label("> NO SCENES FOUND_", classes="scenes-empty"))
+            return
+        await self.mount(Label("── SCENES ──────────────────", classes="scenes-header"))
+        for scene in scenes:
+            await self.mount(SceneRow(scene, self._client))
+
+
+# ── Main app ───────────────────────────────────────────────────────────────
+
 class HATuiApp(App[None]):
     CSS_PATH = "app.tcss"
     BINDINGS = [
@@ -273,6 +471,7 @@ class HATuiApp(App[None]):
         self._config = config
         self._client = HAClient(config.url, config.token)
         self._entities: list[Entity] = []
+        self._scenes: list[Entity] = []
         self._area_map: dict[str, str] = {}
         self._selected_id: str | None = None
         self._active_theme = getattr(config, "theme", DEFAULT_THEME)
@@ -296,14 +495,20 @@ class HATuiApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        with Horizontal(id="body"):
-            with Container(id="sidebar"):
-                with Horizontal(id="sidebar-header"):
-                    yield Label("// HA-CTRL //", id="sidebar-title")
-                    yield Button("⚙", id="btn-settings")
-                yield ListView(id="entity-list")
-            with ScrollableContainer(id="detail"):
-                yield Label("> SELECT NODE_", id="placeholder")
+        with TabbedContent(id="main-tabs"):
+            with TabPane("DEVICES", id="tab-devices"):
+                with Horizontal(id="body"):
+                    with Container(id="sidebar"):
+                        with Horizontal(id="sidebar-header"):
+                            yield Label("// HA-CTRL //", id="sidebar-title")
+                            yield Button("⚙", id="btn-settings")
+                        yield ListView(id="entity-list")
+                    with ScrollableContainer(id="detail"):
+                        yield Label("> SELECT NODE_", id="placeholder")
+            with TabPane("ROOMS", id="tab-rooms"):
+                yield RoomsView(self._client)
+            with TabPane("SCENES", id="tab-scenes"):
+                yield ScenesView(self._client)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -321,8 +526,20 @@ class HATuiApp(App[None]):
             self._area_map = await self._client.get_area_map()
         except Exception:
             self._area_map = {}
+        try:
+            self._scenes = await self._client.get_scenes()
+        except Exception:
+            self._scenes = []
 
         await self._rebuild_list()
+        try:
+            await self.query_one(RoomsView).update_rooms(self._entities, self._area_map)
+        except Exception:
+            pass
+        try:
+            await self.query_one(ScenesView).update_scenes(self._scenes)
+        except Exception:
+            pass
         if self._selected_id:
             entity = self._find(self._selected_id)
             if entity:
@@ -350,7 +567,6 @@ class HATuiApp(App[None]):
         ordered = self._ordered_entities()
         new_ids = [e.entity_id for _, e in ordered]
 
-        # If the entity IDs and order are unchanged, just update state labels in-place
         current_items = list(lv.query(EntityItem))
         if [item.entity.entity_id for item in current_items] == new_ids:
             for item, (_, entity) in zip(current_items, ordered):
@@ -358,7 +574,6 @@ class HATuiApp(App[None]):
                 item.query_one(".item-state", Label).update(_entity_state_str(entity))
             return
 
-        # Structure changed — full rebuild
         await lv.clear()
         current_area: str | None = None
         for area, entity in ordered:
@@ -375,7 +590,6 @@ class HATuiApp(App[None]):
     async def _show_panel(self, entity: Entity) -> None:
         detail = self.query_one("#detail", ScrollableContainer)
 
-        # Try to update in-place if the same entity is already displayed
         if entity.domain == "light":
             panels = list(detail.query(LightPanel))
             if panels and panels[0]._entity.entity_id == entity.entity_id:
@@ -387,7 +601,6 @@ class HATuiApp(App[None]):
                 panels[0].update_entity(entity)
                 return
 
-        # Different entity — full remount
         await detail.remove_children()
         if entity.domain == "light":
             await detail.mount(LightPanel(entity, self._client))
@@ -402,6 +615,17 @@ class HATuiApp(App[None]):
 
     def on_climate_panel_state_changed(self, _: ClimatePanel.StateChanged) -> None:
         self.set_timer(0.5, self.refresh_entities)
+
+    async def on_room_light_row_navigate(self, event: RoomLightRow.Navigate) -> None:
+        """Switch to the Devices tab and select the entity in the sidebar."""
+        self.query_one(TabbedContent).active = "tab-devices"
+        lv = self.query_one("#entity-list", ListView)
+        for i, item in enumerate(lv.children):
+            if isinstance(item, EntityItem) and item.entity.entity_id == event.entity_id:
+                lv.index = i
+                self._selected_id = event.entity_id
+                await self._show_panel(item.entity)
+                break
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "btn-settings":
