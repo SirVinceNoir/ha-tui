@@ -24,13 +24,8 @@ class HueSlider(Widget):
     can_focus = True
 
     DEFAULT_CSS = """
-    HueSlider {
-        height: 1;
-        width: 1fr;
-    }
-    HueSlider:focus {
-        border: none;
-    }
+    HueSlider { height: 1; width: 1fr; }
+    HueSlider:focus { border: none; }
     """
 
     hue: reactive[float] = reactive(0.0, layout=False, repaint=True)
@@ -50,18 +45,18 @@ class HueSlider(Widget):
         width = max(1, self.size.width)
         text = Text(no_wrap=True, overflow="crop")
         cursor = round(self.hue / 360 * (width - 1)) if width > 1 else 0
+        marker = "▼" if self.has_focus else "▲"
         for i in range(width):
             h = (i / (width - 1) * 360) if width > 1 else 0.0
             color = _hs_to_hex(h, 100)
-            if i == cursor:
-                text.append("▲", style=f"white on {color}")
-            else:
-                text.append("█", style=color)
+            text.append(marker if i == cursor else "█", style=f"white on {color}" if i == cursor else color)
         return text
 
+    def on_focus(self) -> None: self.refresh()
+    def on_blur(self) -> None:  self.refresh()
+
     def on_click(self, event: events.Click) -> None:
-        width = self.size.width
-        self.hue = max(0.0, min(360.0, event.x / max(1, width - 1) * 360))
+        self.hue = max(0.0, min(360.0, event.x / max(1, self.size.width - 1) * 360))
         self.post_message(self.Changed(self.hue))
 
     def on_key(self, event: events.Key) -> None:
@@ -81,13 +76,8 @@ class SatSlider(Widget):
     can_focus = True
 
     DEFAULT_CSS = """
-    SatSlider {
-        height: 1;
-        width: 1fr;
-    }
-    SatSlider:focus {
-        border: none;
-    }
+    SatSlider { height: 1; width: 1fr; }
+    SatSlider:focus { border: none; }
     """
 
     hue: reactive[float] = reactive(0.0, layout=False, repaint=True)
@@ -109,18 +99,18 @@ class SatSlider(Widget):
         width = max(1, self.size.width)
         text = Text(no_wrap=True, overflow="crop")
         cursor = round(self.saturation / 100 * (width - 1)) if width > 1 else 0
+        marker = "▼" if self.has_focus else "▲"
         for i in range(width):
             s = (i / (width - 1) * 100) if width > 1 else 100.0
             color = _hs_to_hex(self.hue, s)
-            if i == cursor:
-                text.append("▲", style=f"white on {color}")
-            else:
-                text.append("█", style=color)
+            text.append(marker if i == cursor else "█", style=f"white on {color}" if i == cursor else color)
         return text
 
+    def on_focus(self) -> None: self.refresh()
+    def on_blur(self) -> None:  self.refresh()
+
     def on_click(self, event: events.Click) -> None:
-        width = self.size.width
-        self.saturation = max(0.0, min(100.0, event.x / max(1, width - 1) * 100))
+        self.saturation = max(0.0, min(100.0, event.x / max(1, self.size.width - 1) * 100))
         self.post_message(self.Changed(self.saturation))
 
     def on_key(self, event: events.Key) -> None:
@@ -214,13 +204,8 @@ class BrightnessSlider(Widget):
     can_focus = True
 
     DEFAULT_CSS = """
-    BrightnessSlider {
-        height: 1;
-        width: 1fr;
-    }
-    BrightnessSlider:focus {
-        border: none;
-    }
+    BrightnessSlider { height: 1; width: 1fr; }
+    BrightnessSlider:focus { border: none; }
     """
 
     brightness: reactive[float] = reactive(100.0, layout=False, repaint=True)
@@ -240,15 +225,19 @@ class BrightnessSlider(Widget):
         width = max(1, self.size.width)
         text = Text(no_wrap=True, overflow="crop")
         cursor = round(self.brightness / 100 * (width - 1)) if width > 1 else 0
+        marker = "▼" if self.has_focus else "▲"
         for i in range(width):
             v = int(i / (width - 1) * 255) if width > 1 else 255
             color = f"#{v:02x}{v:02x}{v:02x}"
             if i == cursor:
                 fg = "black" if v > 127 else "white"
-                text.append("▲", style=f"{fg} on {color}")
+                text.append(marker, style=f"{fg} on {color}")
             else:
                 text.append("█", style=color)
         return text
+
+    def on_focus(self) -> None: self.refresh()
+    def on_blur(self) -> None:  self.refresh()
 
     def on_click(self, event: events.Click) -> None:
         self.brightness = max(0.0, min(100.0, event.x / max(1, self.size.width - 1) * 100))
@@ -340,13 +329,8 @@ class ColorTempSlider(Widget):
     can_focus = True
 
     DEFAULT_CSS = """
-    ColorTempSlider {
-        height: 1;
-        width: 1fr;
-    }
-    ColorTempSlider:focus {
-        border: none;
-    }
+    ColorTempSlider { height: 1; width: 1fr; }
+    ColorTempSlider:focus { border: none; }
     """
 
     kelvin: reactive[float] = reactive(4000.0, layout=False, repaint=True)
@@ -379,14 +363,15 @@ class ColorTempSlider(Widget):
             if k_range and width > 1
             else 0
         )
+        marker = "▼" if self.has_focus else "▲"
         for i in range(width):
             k = self._min_k + (i / (width - 1) * k_range) if width > 1 else float(self._min_k)
             color = _kelvin_to_hex(k)
-            if i == cursor:
-                text.append("▲", style=f"white on {color}")
-            else:
-                text.append("█", style=color)
+            text.append(marker if i == cursor else "█", style=f"white on {color}" if i == cursor else color)
         return text
+
+    def on_focus(self) -> None: self.refresh()
+    def on_blur(self) -> None:  self.refresh()
 
     def on_click(self, event: events.Click) -> None:
         frac = event.x / max(1, self.size.width - 1)

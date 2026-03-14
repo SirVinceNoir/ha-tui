@@ -37,26 +37,58 @@ A Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.
 - Python 3.10+
 - A local Home Assistant instance
 - A [long-lived access token](https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token)
+- A terminal with 24-bit true colour support (most modern terminals: Kitty, Alacritty, WezTerm, GNOME Terminal, etc.)
 
-## Installation
+## Installation & setup
+
+### 1. Clone the repo
 
 ```bash
 git clone https://github.com/SirVinceNoir/ha-tui.git
 cd ha-tui
+```
+
+### 2. Create a virtual environment and install
+
+```bash
 python -m venv .venv
 .venv/bin/pip install -e .
 ```
 
+### 3. Generate a Home Assistant token
+
+1. Open Home Assistant in your browser
+2. Click your profile picture (bottom-left)
+3. Scroll to **Long-Lived Access Tokens** → **Create Token**
+4. Give it a name (e.g. `ha-tui`) and copy the token — you won't see it again
+
+### 4. Run for the first time
+
+```bash
+.venv/bin/ha-tui
+```
+
+You'll be prompted for your Home Assistant URL (e.g. `http://192.168.1.x:8123`) and the token you just copied. These are saved to `~/.config/ha-tui/config.toml` and can be changed later from the in-app settings screen (`s` or ⚙).
+
+### Optional: run from anywhere
+
+To launch `ha-tui` without changing directory each time, add an alias to your shell config (`~/.bashrc` or `~/.zshrc`):
+
+```bash
+alias ha-tui='/path/to/ha-tui/.venv/bin/ha-tui'
+```
+
+Or create a symlink into a directory on your `$PATH`:
+
+```bash
+ln -s /path/to/ha-tui/.venv/bin/ha-tui ~/.local/bin/ha-tui
+```
+
 ## Configuration
 
-On first run you will be prompted for your Home Assistant URL and access token. These are saved to `~/.config/ha-tui/config.toml`. You can also update them at any time from the settings screen inside the app.
-
-To generate a token: open Home Assistant → your profile → **Long-Lived Access Tokens** → **Create Token**.
-
-You can also create the config file manually:
+Config is stored at `~/.config/ha-tui/config.toml` and can be edited manually or via the in-app settings screen:
 
 ```toml
-# ~/.config/ha-tui/config.toml
 url = "http://192.168.1.x:8123"
 token = "your-token-here"
 theme = "cyberpunk"
@@ -65,8 +97,7 @@ theme = "cyberpunk"
 ## Usage
 
 ```bash
-cd ha-tui
-.venv/bin/ha-tui
+ha-tui
 ```
 
 ### Key bindings
