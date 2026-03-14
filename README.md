@@ -4,9 +4,9 @@ A Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                       // HA-CTRL //                             ⚙   │
+│  HA-CTRL                                               (clock)      │
 ├──────────────────────────────────────────────────────────────────── │
-│  DEVICES          ROOMS          SCENES                             │
+│  DEVICES       ROOMS       SCENES                               ⚙   │
 ├──────────────────┬──────────────────────────────────────────────────┤
 │ ── LIVING ROOM ──│ // LIVING ROOM LIGHTS //                         │
 │ > Corner Lamp    │ >> ONLINE                                        │
@@ -31,8 +31,8 @@ A Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.
 - **Scenes tab** — list all Home Assistant scenes with one-click activation
 - **Devices tab** — sidebar automatically organised by your Home Assistant areas; select an entity to see full controls in the detail panel
 - **Interactive sliders** — click anywhere on a gradient bar or use ←/→ arrow keys to scrub; colour preview updates live
-- **Themes** — five built-in themes (Cyberpunk, Matrix, Amber, Nord, Blood Moon) with live preview when switching
-- **Settings screen** — change your HA connection or theme without leaving the TUI (⚙ button or `s`)
+- **Themes** — five built-in themes (Cyberpunk, Matrix, Amber, Nord, Blood Moon) with live preview when switching; selected theme persists across restarts
+- **Settings screen** — change your HA connection or theme without leaving the TUI (⚙ button on the right of the tab bar, or `s`); connection is tested before saving so invalid credentials are caught immediately
 - **No flash** — state updates happen in-place so the UI doesn't flicker on every poll
 - **Auto-refresh** — polls Home Assistant every 30 seconds; also refreshes 0.5s after any action
 
@@ -108,7 +108,7 @@ ha-tui
 
 | Key | Action |
 |-----|--------|
-| `s` | Open settings |
+| `s` or `⚙` | Open settings |
 | `r` | Manual refresh |
 | `q` | Quit |
 | `tab` | Move focus between controls |
