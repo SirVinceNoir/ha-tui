@@ -1,24 +1,24 @@
 # ha-tui
 
-A cyberpunk-themed Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.io/).
+A Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.io/), with multiple themes and interactive gradient sliders.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        // HA-CTRL //                            │
-├──────────────────┬──────────────────────────────────────────────┤
-│ ── LIVING ROOM ──│ // LIVING ROOM LIGHTS //                     │
-│ > Corner Lamp    │ >> ONLINE                                     │
-│   ONLINE  80%    │                                               │
-│ > Living Room    │ PWR  [■ on]                                   │
-│   ONLINE  60%    │                                               │
-│ ── KITCHEN ──    │ LUX  [░░░░░░░░░░░░░▲████████████████████]    │
-│ > Kitchen Lights │      [80        ] [Set]                       │
-│   OFFLINE        │                                               │
-│ ── BEDROOM ──    │ ── COLOR TEMP ─────────                       │
-│ > Bedroom Lights │ TEMP [████████████▲░░░░░░░░░░░░░░░░░░░░░░░]  │
-│   ONLINE  40%    │      [████████████████████████████████████]   │
-│                  │      [Apply Temp]                             │
-└──────────────────┴──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                      // HA-CTRL //                          ⚙    │
+├──────────────────┬───────────────────────────────────────────────┤
+│ ── LIVING ROOM ──│ // LIVING ROOM LIGHTS //                      │
+│ > Corner Lamp    │ >> ONLINE                                      │
+│   ONLINE  80%    │                                                │
+│ > Living Room    │ PWR  [■ on]                                    │
+│   ONLINE  60%    │                                                │
+│ ── KITCHEN ──    │ LUX  [░░░░░░░░░░░░░▲████████████████████]     │
+│ > Kitchen Lights │      [80        ] [Set]                        │
+│   OFFLINE        │                                                │
+│ ── BEDROOM ──    │ ── COLOR TEMP ─────────                        │
+│ > Bedroom Lights │ TEMP [████████████▲░░░░░░░░░░░░░░░░░░░░░░░]   │
+│   ONLINE  40%    │      [████████████████████████████████████]    │
+│                  │      [Apply Temp]                              │
+└──────────────────┴───────────────────────────────────────────────┘
 ```
 
 ## Features
@@ -27,6 +27,8 @@ A cyberpunk-themed Linux terminal UI for controlling [Home Assistant](https://ww
 - **Climate** — view current temperature, mode, and set a target temperature
 - **Rooms** — sidebar automatically organised by your Home Assistant areas
 - **Interactive sliders** — click anywhere on a gradient bar or use ←/→ arrow keys to scrub; colour preview updates live
+- **Themes** — five built-in themes (Cyberpunk, Matrix, Amber, Nord, Blood Moon) with live preview when switching
+- **Settings screen** — change your HA connection or theme without leaving the TUI (⚙ button or `s`)
 - **No flash** — state updates happen in-place so the UI doesn't flicker on every poll
 - **Auto-refresh** — polls Home Assistant every 30 seconds; also refreshes 0.5s after any action
 
@@ -47,7 +49,7 @@ python -m venv .venv
 
 ## Configuration
 
-On first run you will be prompted for your Home Assistant URL and access token. These are saved to `~/.config/ha-tui/config.toml`.
+On first run you will be prompted for your Home Assistant URL and access token. These are saved to `~/.config/ha-tui/config.toml`. You can also update them at any time from the settings screen inside the app.
 
 To generate a token: open Home Assistant → your profile → **Long-Lived Access Tokens** → **Create Token**.
 
@@ -57,6 +59,7 @@ You can also create the config file manually:
 # ~/.config/ha-tui/config.toml
 url = "http://192.168.1.x:8123"
 token = "your-token-here"
+theme = "cyberpunk"
 ```
 
 ## Usage
@@ -70,6 +73,7 @@ cd ha-tui
 
 | Key | Action |
 |-----|--------|
+| `s` | Open settings |
 | `r` | Manual refresh |
 | `q` | Quit |
 | `tab` | Move focus between controls |
@@ -84,6 +88,18 @@ cd ha-tui
 | HUE / SAT sliders | RGB colour (on supported lights) |
 | TEMP slider | Colour temperature in Kelvin (on supported lights) |
 
+### Themes
+
+| Theme | Description |
+|-------|-------------|
+| Cyberpunk | Neon cyan and magenta on near-black |
+| Matrix | Neon green on black |
+| Amber | Amber and orange on dark brown — retro terminal feel |
+| Nord | Soft blue-grey palette |
+| Blood Moon | Deep red on black |
+
+Themes can be switched live from the settings screen (`s` or ⚙) with an instant preview before saving.
+
 ## Project structure
 
 ```
@@ -92,6 +108,8 @@ ha_tui/
   widgets.py   # Reusable slider widgets (brightness, hue/sat, colour temp)
   client.py    # Home Assistant REST API client
   config.py    # Config file handling
-  app.tcss     # Cyberpunk CSS theme
+  themes.py    # Theme definitions
+  settings.py  # Settings modal screen
+  app.tcss     # CSS layout and theming
   main.py      # Entry point / first-run setup
 ```
