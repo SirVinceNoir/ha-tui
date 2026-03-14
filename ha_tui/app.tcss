@@ -34,23 +34,6 @@ FooterKey {
     border-right: solid $ha-primary;
 }
 
-#sidebar-header {
-    width: 100%;
-    height: auto;
-    background: $ha-surface;
-    border-bottom: solid $ha-primary;
-    align: left middle;
-}
-
-#sidebar-title {
-    width: 1fr;
-    background: $ha-surface;
-    color: $ha-primary;
-    content-align: center middle;
-    padding: 1;
-    text-style: bold;
-}
-
 #btn-settings {
     width: 4;
     min-width: 4;
@@ -251,25 +234,24 @@ ColorPreview, ColorTempPreview {
     width: 1fr;
 }
 
-/* ── Tabs ────────────────────────────────────────────────────────────── */
+/* ── Tab bar ─────────────────────────────────────────────────────────── */
 
-TabbedContent {
-    height: 1fr;
-}
-
-ContentSwitcher {
-    height: 1fr;
-    background: $ha-bg;
-}
-
-TabPane {
-    height: 100%;
-    padding: 0;
-}
-
-Tabs {
+#tab-bar {
+    height: 3;
     background: $ha-surface;
     border-bottom: solid $ha-primary;
+    align: left middle;
+}
+
+#tab-bar Tabs {
+    width: 1fr;
+    height: 3;
+    background: $ha-surface;
+    border-bottom: none;
+}
+
+#tab-bar Tabs:focus {
+    border: none;
 }
 
 Tab {
@@ -290,6 +272,23 @@ Tab.-active {
 
 Tab:focus {
     color: $ha-primary;
+}
+
+ContentSwitcher {
+    height: 1fr;
+    background: $ha-bg;
+}
+
+#pane-devices {
+    height: 100%;
+}
+
+#pane-rooms {
+    height: 100%;
+}
+
+#pane-scenes {
+    height: 100%;
 }
 
 /* ── Rooms view ──────────────────────────────────────────────────────── */
@@ -446,4 +445,18 @@ RadioButton.-on {
 #settings-buttons Button {
     width: auto;
     margin-left: 1;
+}
+
+#settings-status {
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+}
+
+#settings-status.settings-status-info {
+    color: $ha-muted;
+}
+
+#settings-status.settings-status-error {
+    color: $ha-accent;
 }

@@ -83,6 +83,16 @@ class HAClient:
                 result[entity_id.strip()] = area.strip()
         return result
 
+    async def test_connection(self) -> None:
+        """Verify URL and token are valid. Raises on any failure."""
+        async with httpx.AsyncClient() as client:
+            r = await client.get(
+                f"{self.url}/api/",
+                headers=self._headers,
+                timeout=10,
+            )
+            r.raise_for_status()
+
     async def get_scenes(self) -> list[Entity]:
         """Return all scene entities, sorted by name."""
         async with httpx.AsyncClient() as client:

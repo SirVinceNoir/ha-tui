@@ -8,6 +8,7 @@ from textual.containers import Container, Horizontal, ScrollableContainer
 from textual.message import Message
 from textual.widgets import (
     Button,
+    ContentSwitcher,
     Footer,
     Header,
     Input,
@@ -16,8 +17,8 @@ from textual.widgets import (
     ListView,
     Static,
     Switch,
-    TabbedContent,
-    TabPane,
+    Tab,
+    Tabs,
 )
 
 from .client import Entity, HAClient
@@ -27,6 +28,11 @@ from .themes import DEFAULT_THEME, THEMES
 from .widgets import BrightnessPicker, ColorPicker, ColorTempPicker
 
 _COLOR_MODES = {"hs", "rgb", "xy", "rgbw", "rgbww"}
+
+
+def _err(exc: Exception) -> str:
+    """Return a non-empty error string — httpx errors often stringify to ''."""
+    return str(exc) or type(exc).__name__
 
 
 def _entity_state_str(entity: Entity) -> str:
@@ -170,7 +176,7 @@ class LightPanel(Static):
             )
             self.post_message(self.StateChanged())
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
     async def on_brightness_picker_applied(self, event: BrightnessPicker.Applied) -> None:
         try:
@@ -180,7 +186,7 @@ class LightPanel(Static):
             )
             self.post_message(self.StateChanged())
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
     async def on_color_temp_picker_applied(self, event: ColorTempPicker.Applied) -> None:
         try:
@@ -190,7 +196,7 @@ class LightPanel(Static):
             )
             self.post_message(self.StateChanged())
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
     async def on_color_picker_applied(self, event: ColorPicker.Applied) -> None:
         try:
@@ -200,7 +206,7 @@ class LightPanel(Static):
             )
             self.post_message(self.StateChanged())
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
 
 class ClimatePanel(Static):
@@ -261,7 +267,7 @@ class ClimatePanel(Static):
         except ValueError:
             self.app.notify("Enter a valid temperature", severity="warning")
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
 
 # ── Rooms tab widgets ──────────────────────────────────────────────────────
@@ -361,7 +367,7 @@ class RoomCard(Static):
             await self._client.call_service("light", service, {"entity_id": event.entity_id})
             self.app.set_timer(0.5, self.app.refresh_entities)
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id not in ("btn-all-on", "btn-all-off"):
@@ -373,7 +379,7 @@ class RoomCard(Static):
             await self._client.call_service("light", service, {"entity_id": ids})
             self.app.set_timer(0.5, self.app.refresh_entities)
         except Exception as exc:
-            self.app.notify(str(exc), severity="error")
+            self.app.notify(_err(exc), severity="error")
 
 
 class RoomsView(ScrollableContainer):
@@ -431,7 +437,7 @@ class SceneRow(Horizontal):
                 )
                 self.app.notify(f"'{self._entity.name}' activated", timeout=3)
             except Exception as exc:
-                self.app.notify(str(exc), severity="error")
+                self.app.notify(_err(exc), severity="error")
 
 
 class ScenesView(ScrollableContainer):
@@ -460,6 +466,7 @@ class ScenesView(ScrollableContainer):
 
 class HATuiApp(App[None]):
     CSS_PATH = "app.tcss"
+    TITLE = "HA-CTRL"
     BINDINGS = [
         ("r", "refresh", "Refresh"),
         ("s", "settings", "Settings"),
@@ -467,6 +474,7 @@ class HATuiApp(App[None]):
     ]
 
     def __init__(self, config: Config) -> None:
+        self._active_theme = getattr(config, "theme", DEFAULT_THEME)
         super().__init__()
         self._config = config
         self._client = HAClient(config.url, config.token)
@@ -474,7 +482,6 @@ class HATuiApp(App[None]):
         self._scenes: list[Entity] = []
         self._area_map: dict[str, str] = {}
         self._selected_id: str | None = None
-        self._active_theme = getattr(config, "theme", DEFAULT_THEME)
 
     def get_css_variables(self) -> dict[str, str]:
         theme_vars = THEMES.get(getattr(self, "_active_theme", DEFAULT_THEME), THEMES[DEFAULT_THEME])
@@ -495,21 +502,38 @@ class HATuiApp(App[None]):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        with TabbedContent(id="main-tabs"):
-            with TabPane("DEVICES", id="tab-devices"):
+        with Horizontal(id="tab-bar"):
+            yield Tabs(
+                Tab("DEVICES", id="tab-devices"),
+                Tab("ROOMS", id="tab-rooms"),
+                Tab("SCENES", id="tab-scenes"),
+                id="main-tabs",
+            )
+            yield Button("⚙", id="btn-settings")
+        with ContentSwitcher(initial="pane-devices", id="content-switcher"):
+            with Container(id="pane-devices"):
                 with Horizontal(id="body"):
                     with Container(id="sidebar"):
-                        with Horizontal(id="sidebar-header"):
-                            yield Label("// HA-CTRL //", id="sidebar-title")
-                            yield Button("⚙", id="btn-settings")
                         yield ListView(id="entity-list")
                     with ScrollableContainer(id="detail"):
                         yield Label("> SELECT NODE_", id="placeholder")
-            with TabPane("ROOMS", id="tab-rooms"):
+            with Container(id="pane-rooms"):
                 yield RoomsView(self._client)
-            with TabPane("SCENES", id="tab-scenes"):
+            with Container(id="pane-scenes"):
                 yield ScenesView(self._client)
         yield Footer()
+
+    def on_tabs_tab_activated(self, event: Tabs.TabActivated) -> None:
+        if event.tab is None:
+            return
+        pane_map = {
+            "tab-devices": "pane-devices",
+            "tab-rooms":   "pane-rooms",
+            "tab-scenes":  "pane-scenes",
+        }
+        pane_id = pane_map.get(event.tab.id)
+        if pane_id:
+            self.query_one(ContentSwitcher).current = pane_id
 
     def on_mount(self) -> None:
         self.refresh_entities()
@@ -520,7 +544,7 @@ class HATuiApp(App[None]):
         try:
             self._entities = await self._client.get_states()
         except Exception as exc:
-            self.notify(f"Connection failed: {exc}", severity="error", timeout=6)
+            self.notify(f"Connection failed: {_err(exc)}", severity="error", timeout=6)
             return
         try:
             self._area_map = await self._client.get_area_map()
@@ -618,7 +642,7 @@ class HATuiApp(App[None]):
 
     async def on_room_light_row_navigate(self, event: RoomLightRow.Navigate) -> None:
         """Switch to the Devices tab and select the entity in the sidebar."""
-        self.query_one(TabbedContent).active = "tab-devices"
+        self.query_one("#main-tabs", Tabs).active = "tab-devices"
         lv = self.query_one("#entity-list", ListView)
         for i, item in enumerate(lv.children):
             if isinstance(item, EntityItem) and item.entity.entity_id == event.entity_id:
