@@ -5,7 +5,7 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore[no-redef]
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 CONFIG_DIR = Path.home() / ".config" / "ha-tui"
@@ -16,6 +16,7 @@ CONFIG_FILE = CONFIG_DIR / "config.toml"
 class Config:
     url: str
     token: str
+    theme: str = field(default="cyberpunk")
 
     @classmethod
     def load(cls) -> Config | None:
@@ -23,10 +24,15 @@ class Config:
             return None
         with open(CONFIG_FILE, "rb") as f:
             data = tomllib.load(f)
-        return cls(url=data["url"], token=data["token"])
+        return cls(
+            url=data["url"],
+            token=data["token"],
+            theme=data.get("theme", "cyberpunk"),
+        )
 
     def save(self) -> None:
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         with open(CONFIG_FILE, "w") as f:
             f.write(f'url = "{self.url}"\n')
             f.write(f'token = "{self.token}"\n')
+            f.write(f'theme = "{self.theme}"\n')

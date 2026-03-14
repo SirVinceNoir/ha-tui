@@ -1,67 +1,94 @@
+/* ── Main layout ─────────────────────────────────────────────────────── */
+
 Screen {
-    background: #0a0a0f;
+    background: $ha-bg;
 }
 
 Header {
-    background: #0d0d16;
-    color: #00ffff;
-    border-bottom: solid #00ffff;
+    background: $ha-surface;
+    color: $ha-primary;
+    border-bottom: solid $ha-primary;
 }
 
 Footer {
-    background: #0d0d16;
-    color: #004444;
-    border-top: solid #00ffff;
+    background: $ha-surface;
+    color: $ha-border-dim;
+    border-top: solid $ha-primary;
 }
 
 FooterKey {
-    background: #001a1a;
-    color: #00ffff;
+    background: $ha-btn-bg;
+    color: $ha-primary;
 }
 
 #body {
     height: 1fr;
 }
 
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+
 #sidebar {
     width: 36;
     height: 100%;
-    background: #0d0d16;
-    border-right: solid #00ffff;
+    background: $ha-surface;
+    border-right: solid $ha-primary;
+}
+
+#sidebar-header {
+    width: 100%;
+    height: auto;
+    background: $ha-surface;
+    border-bottom: solid $ha-primary;
+    align: left middle;
 }
 
 #sidebar-title {
-    width: 100%;
-    background: #0d0d16;
-    color: #00ffff;
-    text-align: center;
+    width: 1fr;
+    background: $ha-surface;
+    color: $ha-primary;
+    content-align: center middle;
     padding: 1;
     text-style: bold;
-    border-bottom: solid #00ffff;
+}
+
+#btn-settings {
+    width: 4;
+    min-width: 4;
+    height: 3;
+    background: $ha-surface;
+    color: $ha-muted;
+    border: none;
+    margin: 0;
+}
+
+#btn-settings:hover {
+    background: $ha-hover;
+    color: $ha-primary;
+    border: none;
 }
 
 ListView {
     height: 1fr;
-    background: #0d0d16;
+    background: $ha-surface;
     border: none;
 }
 
 AreaHeader {
     height: auto;
     padding: 1 1 0 1;
-    background: #0d0d16;
+    background: $ha-surface;
 }
 
 AreaHeader:hover {
-    background: #0d0d16;
+    background: $ha-surface;
 }
 
 AreaHeader.-highlighted {
-    background: #0d0d16;
+    background: $ha-surface;
 }
 
 .area-header-label {
-    color: #ff00ff;
+    color: $ha-accent;
     text-style: bold;
     width: 100%;
 }
@@ -69,40 +96,42 @@ AreaHeader.-highlighted {
 EntityItem {
     height: auto;
     padding: 0 1;
-    border-bottom: solid #141428;
+    border-bottom: solid $ha-divider;
 }
 
 EntityItem:hover {
-    background: #001515;
+    background: $ha-hover;
 }
 
 EntityItem.-highlighted {
-    background: #001f1f;
-    border-left: solid #00ffff;
+    background: $ha-selected;
+    border-left: solid $ha-primary;
 }
 
 .item-name {
-    color: #00ffff;
+    color: $ha-primary;
     text-style: bold;
 }
 
 .item-state {
-    color: #006666;
+    color: $ha-muted;
     padding-left: 2;
 }
+
+/* ── Detail panel ────────────────────────────────────────────────────── */
 
 #detail {
     width: 1fr;
     height: 100%;
     padding: 2 4;
-    background: #0a0a0f;
+    background: $ha-bg;
 }
 
 #placeholder {
     width: 100%;
     height: 100%;
     content-align: center middle;
-    color: #003333;
+    color: $ha-dim;
 }
 
 LightPanel, ClimatePanel {
@@ -111,16 +140,16 @@ LightPanel, ClimatePanel {
 }
 
 #panel-title {
-    color: #00ffff;
+    color: $ha-primary;
     text-style: bold;
     width: 100%;
     padding-bottom: 1;
     margin-bottom: 1;
-    border-bottom: solid #00ffff;
+    border-bottom: solid $ha-primary;
 }
 
 #panel-status {
-    color: #ff00ff;
+    color: $ha-accent;
     margin-bottom: 2;
 }
 
@@ -132,59 +161,63 @@ LightPanel, ClimatePanel {
 
 .control-label {
     width: 16;
-    color: #006666;
+    color: $ha-muted;
     content-align: left middle;
 }
 
 .temp-display {
     padding: 0 1;
     margin-bottom: 0;
-    color: #00cccc;
+    color: $ha-text;
 }
 
 .temp-range {
     padding: 0 1;
-    color: #004444;
+    color: $ha-border-dim;
     margin-bottom: 1;
 }
+
+.section-divider {
+    color: $ha-border-dim;
+    margin-top: 2;
+    margin-bottom: 0;
+}
+
+/* ── Inputs & buttons ────────────────────────────────────────────────── */
 
 Input {
     width: 14;
     margin-right: 1;
-    background: #0d0d16;
-    color: #00ffff;
-    border: tall #004444;
+    background: $ha-surface;
+    color: $ha-primary;
+    border: tall $ha-border-dim;
 }
 
 Input:focus {
-    border: tall #00ffff;
+    border: tall $ha-primary;
 }
 
 Button {
     min-width: 7;
-    background: #001a1a;
-    color: #00ffff;
-    border: tall #004444;
+    background: $ha-btn-bg;
+    color: $ha-primary;
+    border: tall $ha-border-dim;
 }
 
 Button:hover {
-    background: #002525;
-    border: tall #00ffff;
+    background: $ha-btn-hover;
+    border: tall $ha-primary;
 }
 
 Button.-active {
-    background: #003333;
+    background: $ha-dim;
 }
 
 Switch {
     margin: 0;
 }
 
-.section-divider {
-    color: #004444;
-    margin-top: 2;
-    margin-bottom: 0;
-}
+/* ── Sliders ─────────────────────────────────────────────────────────── */
 
 ColorPicker {
     height: auto;
@@ -200,21 +233,92 @@ ColorPicker {
 
 .slider-label {
     width: 6;
-    color: #006666;
+    color: $ha-muted;
     content-align: left middle;
 }
 
-HueSlider, SatSlider {
+HueSlider, SatSlider, BrightnessSlider, ColorTempSlider {
     height: 1;
     width: 1fr;
 }
 
-HueSlider:focus, SatSlider:focus {
+HueSlider:focus, SatSlider:focus, BrightnessSlider:focus, ColorTempSlider:focus {
     border: none;
-    outline: solid #00ffff;
+    outline: solid $ha-primary;
 }
 
-ColorPreview {
+ColorPreview, ColorTempPreview {
     height: 2;
     width: 1fr;
+}
+
+/* ── Settings modal ──────────────────────────────────────────────────── */
+
+SettingsScreen {
+    align: center middle;
+}
+
+#settings-dialog {
+    width: 56;
+    height: auto;
+    background: $ha-surface;
+    border: solid $ha-primary;
+    padding: 1 2;
+}
+
+#settings-title {
+    text-align: center;
+    color: $ha-primary;
+    text-style: bold;
+    width: 100%;
+    padding-bottom: 1;
+    margin-bottom: 1;
+    border-bottom: solid $ha-primary;
+}
+
+.settings-divider {
+    color: $ha-muted;
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+.settings-label {
+    color: $ha-muted;
+    margin-top: 1;
+}
+
+#settings-dialog Input {
+    width: 100%;
+    margin-top: 0;
+}
+
+RadioSet {
+    background: transparent;
+    border: none;
+    height: auto;
+    padding: 0;
+}
+
+RadioButton {
+    color: $ha-muted;
+    background: transparent;
+}
+
+RadioButton:focus {
+    color: $ha-primary;
+}
+
+RadioButton.-on {
+    color: $ha-primary;
+}
+
+#settings-buttons {
+    margin-top: 2;
+    height: auto;
+    align: right middle;
+}
+
+#settings-buttons Button {
+    width: auto;
+    margin-left: 1;
 }

@@ -20,6 +20,8 @@ from textual.widgets import (
 
 from .client import Entity, HAClient
 from .config import Config
+from .settings import SettingsScreen
+from .themes import DEFAULT_THEME, THEMES
 from .widgets import BrightnessPicker, ColorPicker, ColorTempPicker
 
 _COLOR_MODES = {"hs", "rgb", "xy", "rgbw", "rgbww"}
@@ -262,21 +264,43 @@ class HATuiApp(App[None]):
     CSS_PATH = "app.tcss"
     BINDINGS = [
         ("r", "refresh", "Refresh"),
+        ("s", "settings", "Settings"),
         ("q", "quit", "Quit"),
     ]
 
     def __init__(self, config: Config) -> None:
         super().__init__()
+        self._config = config
         self._client = HAClient(config.url, config.token)
         self._entities: list[Entity] = []
         self._area_map: dict[str, str] = {}
         self._selected_id: str | None = None
+        self._active_theme = getattr(config, "theme", DEFAULT_THEME)
+
+    def get_css_variables(self) -> dict[str, str]:
+        theme_vars = THEMES.get(getattr(self, "_active_theme", DEFAULT_THEME), THEMES[DEFAULT_THEME])
+        scrollbar_vars = {
+            "scrollbar":                    theme_vars["ha-border-dim"],
+            "scrollbar-hover":              theme_vars["ha-primary"],
+            "scrollbar-active":             theme_vars["ha-primary"],
+            "scrollbar-background":         theme_vars["ha-surface"],
+            "scrollbar-background-hover":   theme_vars["ha-surface"],
+            "scrollbar-background-active":  theme_vars["ha-surface"],
+            "scrollbar-corner-color":       theme_vars["ha-surface"],
+        }
+        return {**super().get_css_variables(), **theme_vars, **scrollbar_vars}
+
+    def _apply_theme(self, theme_name: str) -> None:
+        self._active_theme = theme_name
+        self.refresh_css()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Horizontal(id="body"):
             with Container(id="sidebar"):
-                yield Label("// HA-CTRL //", id="sidebar-title")
+                with Horizontal(id="sidebar-header"):
+                    yield Label("// HA-CTRL //", id="sidebar-title")
+                    yield Button("⚙", id="btn-settings")
                 yield ListView(id="entity-list")
             with ScrollableContainer(id="detail"):
                 yield Label("> SELECT NODE_", id="placeholder")
@@ -379,6 +403,30 @@ class HATuiApp(App[None]):
     def on_climate_panel_state_changed(self, _: ClimatePanel.StateChanged) -> None:
         self.set_timer(0.5, self.refresh_entities)
 
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "btn-settings":
+            self.action_settings()
+
     def action_refresh(self) -> None:
         self.refresh_entities()
         self.notify("Refreshing…", timeout=2)
+
+    def action_settings(self) -> None:
+        original_theme = self._active_theme
+
+        def on_close(result: tuple[str, str, str] | None) -> None:
+            if result is None:
+                self._apply_theme(original_theme)
+                return
+            url, token, theme = result
+            connection_changed = (url != self._config.url or token != self._config.token)
+            self._config.url = url
+            self._config.token = token
+            self._config.theme = theme
+            self._config.save()
+            self._apply_theme(theme)
+            if connection_changed:
+                self._client = HAClient(url, token)
+                self.refresh_entities()
+
+        self.push_screen(SettingsScreen(self._config), callback=on_close)
