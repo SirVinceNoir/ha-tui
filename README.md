@@ -3,29 +3,33 @@
 A Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.io/), with multiple themes and interactive gradient sliders.
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                      // HA-CTRL //                          ⚙    │
-├──────────────────┬───────────────────────────────────────────────┤
-│ ── LIVING ROOM ──│ // LIVING ROOM LIGHTS //                      │
-│ > Corner Lamp    │ >> ONLINE                                      │
-│   ONLINE  80%    │                                                │
-│ > Living Room    │ PWR  [■ on]                                    │
-│   ONLINE  60%    │                                                │
-│ ── KITCHEN ──    │ LUX  [░░░░░░░░░░░░░▲████████████████████]     │
-│ > Kitchen Lights │      [80        ] [Set]                        │
-│   OFFLINE        │                                                │
-│ ── BEDROOM ──    │ ── COLOR TEMP ─────────                        │
-│ > Bedroom Lights │ TEMP [████████████▲░░░░░░░░░░░░░░░░░░░░░░░]   │
-│   ONLINE  40%    │      [████████████████████████████████████]    │
-│                  │      [Apply Temp]                              │
-└──────────────────┴───────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                       // HA-CTRL //                             ⚙   │
+├──────────────────────────────────────────────────────────────────── │
+│  DEVICES          ROOMS          SCENES                             │
+├──────────────────┬──────────────────────────────────────────────────┤
+│ ── LIVING ROOM ──│ // LIVING ROOM LIGHTS //                         │
+│ > Corner Lamp    │ >> ONLINE                                        │
+│   ONLINE  80%    │                                                  │
+│ > Living Room    │ PWR  [■ on]                                      │
+│   ONLINE  60%    │                                                  │
+│ ── KITCHEN ──    │ LUX  [░░░░░░░░░░░░░▲████████████████████]        │
+│ > Kitchen Lights │      [80        ] [Set]                          │
+│   OFFLINE        │                                                  │
+│ ── BEDROOM ──    │ ── COLOR TEMP ─────────                          │
+│ > Bedroom Lights │ TEMP [████████████▲░░░░░░░░░░░░░░░░░░░░░░░]     │
+│   ONLINE  40%    │      [████████████████████████████████████]      │
+│                  │      [Apply Temp]                                │
+└──────────────────┴──────────────────────────────────────────────────┘
 ```
 
 ## Features
 
 - **Lights** — toggle on/off, adjust brightness, set RGB colour and colour temperature via interactive gradient sliders
 - **Climate** — view current temperature, mode, and set a target temperature
-- **Rooms** — sidebar automatically organised by your Home Assistant areas
+- **Rooms tab** — overview of every area with individual light toggles and All On / All Off buttons per room; click a light name to jump to its detail in the Devices tab
+- **Scenes tab** — list all Home Assistant scenes with one-click activation
+- **Devices tab** — sidebar automatically organised by your Home Assistant areas; select an entity to see full controls in the detail panel
 - **Interactive sliders** — click anywhere on a gradient bar or use ←/→ arrow keys to scrub; colour preview updates live
 - **Themes** — five built-in themes (Cyberpunk, Matrix, Amber, Nord, Blood Moon) with live preview when switching
 - **Settings screen** — change your HA connection or theme without leaving the TUI (⚙ button or `s`)
@@ -110,7 +114,15 @@ ha-tui
 | `tab` | Move focus between controls |
 | `←` / `→` | Scrub a focused slider |
 
-### Light controls
+### Tabs
+
+| Tab | Description |
+|-----|-------------|
+| DEVICES | Sidebar entity list + full detail panel (sliders, colour pickers, climate controls) |
+| ROOMS | Room cards — individual light toggles, bulk All On/Off; click a light name to open it in the Devices tab |
+| SCENES | All HA scenes with an Activate button for each |
+
+### Light controls (Devices tab)
 
 | Control | Description |
 |---------|-------------|
