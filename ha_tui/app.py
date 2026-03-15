@@ -25,7 +25,7 @@ from .client import Entity, HAClient
 from .config import Config
 from .settings import SettingsScreen
 from .themes import DEFAULT_THEME, THEMES
-from .widgets import BrightnessPicker, ColorPicker, ColorTempPicker
+from .widgets import BrightnessPicker, ColorPicker, ColorTempPicker, TempDisplay, TempSlider
 
 _COLOR_MODES = {"hs", "rgb", "xy", "rgbw", "rgbww"}
 
@@ -224,50 +224,81 @@ class ClimatePanel(Static):
         current = attrs.get("current_temperature", "—")
         target = attrs.get("temperature") or attrs.get("target_temp_high") or "—"
         unit = attrs.get("temperature_unit", "")
-        min_t = attrs.get("min_temp", 7)
-        max_t = attrs.get("max_temp", 35)
+        min_t = float(attrs.get("min_temp", 7))
+        max_t = float(attrs.get("max_temp", 35))
+
+        try:
+            target_f = float(target)
+        except (TypeError, ValueError):
+            target_f = (min_t + max_t) / 2
+
+        try:
+            current_f = float(current)
+        except (TypeError, ValueError):
+            current_f = min_t
 
         yield Label(f"// {e.name.upper()} //", id="panel-title")
         yield Label(f">> MODE: {e.state.upper()}", id="panel-status")
-        yield Label(f"  CURRENT  {current}{unit}", id="label-current-temp", classes="temp-display")
-        yield Label(f"  TARGET   {target}{unit}", id="label-target-temp", classes="temp-display")
-        yield Label(f"  RANGE    {min_t}–{max_t}{unit}", classes="temp-range")
-        with Horizontal(classes="control-row"):
-            yield Label("SET TARGET", classes="control-label")
-            yield Input(
-                value=str(target) if target != "—" else "",
-                id="temp-input",
-                placeholder="Temperature",
-            )
-            yield Button("Set", id="btn-temp", variant="primary")
+        yield TempDisplay(
+            current=current,
+            target=target,
+            unit=unit,
+            min_temp=min_t,
+            max_temp=max_t,
+            id="temp-display",
+        )
+        yield Label(
+            f"  {min_t:g}{unit}  ◄  SLIDE TO SET TARGET  ►  {max_t:g}{unit}",
+            classes="temp-range",
+        )
+        yield TempSlider(
+            target=target_f,
+            current=current_f,
+            min_temp=min_t,
+            max_temp=max_t,
+            id="temp-slider",
+        )
+        yield Button("Apply Temperature", id="btn-temp", variant="primary")
 
     def update_entity(self, entity: Entity) -> None:
         self._entity = entity
         attrs = entity.attributes
         current = attrs.get("current_temperature", "—")
         target = attrs.get("temperature") or attrs.get("target_temp_high") or "—"
-        unit = attrs.get("temperature_unit", "")
 
         self.query_one("#panel-status", Label).update(f">> MODE: {entity.state.upper()}")
-        self.query_one("#label-current-temp", Label).update(f"  CURRENT  {current}{unit}")
-        self.query_one("#label-target-temp", Label).update(f"  TARGET   {target}{unit}")
+
+        display = self.query_one("#temp-display", TempDisplay)
+        display.current = current
+        display.target = target
+
+        slider = self.query_one("#temp-slider", TempSlider)
+        try:
+            slider.current = float(current)
+        except (TypeError, ValueError):
+            pass
+        try:
+            slider.target = float(target)
+        except (TypeError, ValueError):
+            pass
+
+    def on_temp_slider_changed(self, event: TempSlider.Changed) -> None:
+        self.query_one("#temp-display", TempDisplay).target = event.temp
 
     async def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id != "btn-temp":
             return
-        inp = self.query_one("#temp-input", Input)
         try:
-            temp = float(inp.value)
+            temp = round(self.query_one("#temp-slider", TempSlider).target, 1)
             await self._client.call_service(
                 "climate",
                 "set_temperature",
                 {"entity_id": self._entity.entity_id, "temperature": temp},
             )
             self.post_message(self.StateChanged())
-        except ValueError:
-            self.app.notify("Enter a valid temperature", severity="warning")
         except Exception as exc:
             self.app.notify(_err(exc), severity="error")
+        event.stop()
 
 
 # ── Rooms tab widgets ──────────────────────────────────────────────────────

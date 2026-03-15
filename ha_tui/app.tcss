@@ -220,12 +220,12 @@ ColorPicker {
     content-align: left middle;
 }
 
-HueSlider, SatSlider, BrightnessSlider, ColorTempSlider {
+HueSlider, SatSlider, BrightnessSlider, ColorTempSlider, TempSlider {
     height: 1;
     width: 1fr;
 }
 
-HueSlider:focus, SatSlider:focus, BrightnessSlider:focus, ColorTempSlider:focus {
+HueSlider:focus, SatSlider:focus, BrightnessSlider:focus, ColorTempSlider:focus, TempSlider:focus {
     border: none;
 }
 

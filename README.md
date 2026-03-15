@@ -26,7 +26,7 @@ A Linux terminal UI for controlling [Home Assistant](https://www.home-assistant.
 ## Features
 
 - **Lights** — toggle on/off, adjust brightness, set RGB colour and colour temperature via interactive gradient sliders
-- **Climate** — view current temperature, mode, and set a target temperature
+- **Climate** — view current and target temperature with a colour-coded graphical display and an interactive blue→orange gradient slider for setting the target
 - **Rooms tab** — overview of every area with individual light toggles and All On / All Off buttons per room; click a light name to jump to its detail in the Devices tab
 - **Scenes tab** — list all Home Assistant scenes with one-click activation
 - **Devices tab** — sidebar automatically organised by your Home Assistant areas; select an entity to see full controls in the detail panel
@@ -131,6 +131,14 @@ ha-tui
 | HUE / SAT sliders | RGB colour (on supported lights) |
 | TEMP slider | Colour temperature in Kelvin (on supported lights) |
 
+### Climate controls (Devices tab)
+
+| Control | Description |
+|---------|-------------|
+| CURRENT / TARGET display | Colour-coded readout — values shift from blue (cool) to orange (warm) based on the thermostat's range |
+| Gradient slider | Click or use ←/→ to adjust the target in 0.5° steps; `●` marks the current temp, `▲`/`▼` marks the target |
+| Apply Temperature | Sends the selected target to Home Assistant |
+
 ### Themes
 
 | Theme | Description |
@@ -148,7 +156,7 @@ Themes can be switched live from the settings screen (`s` or ⚙) with an instan
 ```
 ha_tui/
   app.py       # Textual TUI — layout, panels, event handling
-  widgets.py   # Reusable slider widgets (brightness, hue/sat, colour temp)
+  widgets.py   # Reusable slider widgets (brightness, hue/sat, colour temp, temperature)
   client.py    # Home Assistant REST API client
   config.py    # Config file handling
   themes.py    # Theme definitions

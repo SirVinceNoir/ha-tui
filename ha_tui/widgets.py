@@ -463,3 +463,149 @@ class ColorTempPicker(Static):
             kelvin = self.query_one("#ct-slider", ColorTempSlider).kelvin
             self.post_message(self.Applied(kelvin))
             event.stop()
+
+
+def _temp_to_hex(temp: float, min_t: float, max_t: float) -> str:
+    """Map a temperature in [min_t, max_t] to a blue→orange colour."""
+    frac = max(0.0, min(1.0, (temp - min_t) / max(1.0, max_t - min_t)))
+    hue = 220 - frac * 200  # 220° (cool blue) → 20° (warm orange)
+    r, g, b = colorsys.hsv_to_rgb(hue / 360, 0.75, 1.0)
+    return f"#{int(r * 255):02x}{int(g * 255):02x}{int(b * 255):02x}"
+
+
+class TempDisplay(Widget):
+    """Shows current and target temperatures side by side with colour coding."""
+
+    DEFAULT_CSS = """
+    TempDisplay {
+        height: 2;
+        width: 100%;
+        margin-bottom: 1;
+    }
+    """
+
+    current: reactive = reactive("—", layout=False, repaint=True)
+    target: reactive = reactive("—", layout=False, repaint=True)
+
+    def __init__(
+        self,
+        current=None,
+        target=None,
+        unit: str = "",
+        min_temp: float = 7.0,
+        max_temp: float = 35.0,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.current = current if current is not None else "—"
+        self.target = target if target is not None else "—"
+        self._unit = unit
+        self._min = min_temp
+        self._max = max_temp
+
+    def _temp_color(self, temp) -> str:
+        if not isinstance(temp, (int, float)):
+            return "#888888"
+        return _temp_to_hex(float(temp), self._min, self._max)
+
+    def render(self):
+        from rich.text import Text
+
+        w = max(20, self.size.width)
+        left_w = w * 2 // 5
+        mid_w = max(3, w // 5)
+        right_w = w - left_w - mid_w
+
+        cur = self.current
+        tgt = self.target
+        cur_s = f"{cur}{self._unit}" if isinstance(cur, (int, float)) else str(cur)
+        tgt_s = f"{tgt}{self._unit}" if isinstance(tgt, (int, float)) else str(tgt)
+
+        t = Text(no_wrap=True, overflow="crop")
+        t.append(f"{'CURRENT':^{left_w}}", style="dim")
+        t.append(f"{'':^{mid_w}}")
+        t.append(f"{'TARGET':^{right_w}}\n", style="dim")
+        t.append(f"{cur_s:^{left_w}}", style=f"bold {self._temp_color(cur)}")
+        t.append(f"{'→':^{mid_w}}", style="dim")
+        t.append(f"{tgt_s:^{right_w}}", style=f"bold {self._temp_color(tgt)}")
+        return t
+
+
+class TempSlider(Widget):
+    """Interactive temperature slider (blue→orange) showing current and target positions."""
+
+    can_focus = True
+
+    DEFAULT_CSS = """
+    TempSlider { height: 1; width: 1fr; }
+    TempSlider:focus { border: none; }
+    """
+
+    target: reactive[float] = reactive(20.0, layout=False, repaint=True)
+    current: reactive[float] = reactive(20.0, layout=False, repaint=True)
+
+    class Changed(Message):
+        def __init__(self, temp: float) -> None:
+            self.temp = temp
+            super().__init__()
+
+    def __init__(
+        self,
+        target: float = 20.0,
+        current: float = 20.0,
+        min_temp: float = 7.0,
+        max_temp: float = 35.0,
+        step: float = 0.5,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self.target = target
+        self.current = current
+        self._min = min_temp
+        self._max = max_temp
+        self._step = step
+
+    def _pos(self, temp: float, width: int) -> int:
+        t_range = self._max - self._min
+        if not t_range or width <= 1:
+            return 0
+        return round((temp - self._min) / t_range * (width - 1))
+
+    def render(self):
+        from rich.text import Text
+
+        width = max(1, self.size.width)
+        text = Text(no_wrap=True, overflow="crop")
+        target_pos = self._pos(self.target, width)
+        current_pos = self._pos(self.current, width)
+        marker = "▼" if self.has_focus else "▲"
+
+        for i in range(width):
+            t = self._min + (i / (width - 1) * (self._max - self._min)) if width > 1 else self._min
+            color = _temp_to_hex(t, self._min, self._max)
+            if i == target_pos:
+                text.append(marker, style=f"black on {color}")
+            elif i == current_pos:
+                text.append("●", style=f"white on {color}")
+            else:
+                text.append("█", style=color)
+        return text
+
+    def on_focus(self) -> None: self.refresh()
+    def on_blur(self) -> None: self.refresh()
+
+    def on_click(self, event: events.Click) -> None:
+        t_range = self._max - self._min
+        raw = self._min + event.x / max(1, self.size.width - 1) * t_range
+        self.target = max(self._min, min(self._max, round(raw / self._step) * self._step))
+        self.post_message(self.Changed(self.target))
+
+    def on_key(self, event: events.Key) -> None:
+        if event.key == "left":
+            self.target = max(self._min, round((self.target - self._step) / self._step) * self._step)
+            self.post_message(self.Changed(self.target))
+            event.stop()
+        elif event.key == "right":
+            self.target = min(self._max, round((self.target + self._step) / self._step) * self._step)
+            self.post_message(self.Changed(self.target))
+            event.stop()
